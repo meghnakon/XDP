@@ -25,6 +25,13 @@ extern "C" {
 
   XDP_PLUGIN_EXPORT void updateDeviceAIEHalt(void* hwCtxImpl);
   XDP_PLUGIN_EXPORT void finishflushDeviceAIEHalt(void* hwCtxImpl);
+  XDP_PLUGIN_EXPORT void aieHaltRunConstructor(void* run_impl_ptr, void* hwctx, uint32_t run_uid,
+                                               const char* kernel_name, void* elf_handle);
+  XDP_PLUGIN_EXPORT void aieHaltRunStartWithRun(void* run_impl_ptr, void* hwctx, uint32_t run_uid,
+                                                const char* kernel_name);
+  // Older XRT resolves this name with this exact signature; keep both
+  // unchanged so a mismatched XRT and plugin never call through the wrong
+  // signature.
   XDP_PLUGIN_EXPORT void aieHaltRunStart(void* hwctx, const char* kernel_name);
 
 }

@@ -17,6 +17,8 @@
 #ifndef XDP_AIE_HALT_PLUGIN_H
 #define XDP_AIE_HALT_PLUGIN_H
 
+#include <mutex>
+
 #include "xdp/profile/plugin/aie_halt/aie_halt_impl.h"
 #include "xdp/profile/plugin/vp_base/vp_base_plugin.h"
 
@@ -54,6 +56,10 @@ namespace xdp {
 
     void* mHwCtxImpl = nullptr;
     bool mDeferredConfiguration = false;
+    // Guards the fields above: run start hooks fire concurrently from user
+    // threads. Recursive so that a same-thread reentry from XRT while halt is
+    // being configured returns early instead of deadlocking.
+    std::recursive_mutex mMutex;
   };
 
 } // end namespace xdp

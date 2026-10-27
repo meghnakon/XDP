@@ -60,6 +60,7 @@ namespace xdp {
   void AIEHaltPlugin::updateDevice(void* hwCtxImpl)
   {
 #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
+    std::lock_guard<std::recursive_mutex> lock(mMutex);
     if (mHwCtxImpl) {
       // Only 1 device and xclbin is supported now.
       return;
@@ -81,9 +82,9 @@ namespace xdp {
     }
 
     if (isFullELFFlow) {
-      // updateDevice can be called by hw_context::add_config() while it holds
-      // the hw-context mutex. Defer all APIs which reacquire that mutex until
-      // the first user run is constructed.
+      // hw_context::add_config() calls updateDevice only for the first ELF, so
+      // ELFs added later, which may carry the AIE metadata, are not registered
+      // yet. Defer configuration until the first user run starts.
       mDeferredConfiguration = true;
       xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
         "Deferring AIE Halt full-ELF configuration until the first user run.");
@@ -148,6 +149,7 @@ namespace xdp {
                                    const std::string& /*kernel_name*/)
   {
 #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
+    std::lock_guard<std::recursive_mutex> lock(mMutex);
     if (mDeferredConfiguration) {
       if (hwCtxImpl != mHwCtxImpl) {
         xrt_core::message::send(xrt_core::message::severity_level::debug, "XRT",
@@ -157,12 +159,15 @@ namespace xdp {
       }
       mDeferredConfiguration = false;
     }
+#else
+    (void)hwCtxImpl;
 #endif
   }
 
   void AIEHaltPlugin::finishflushDevice(void* hwCtxImpl)
   {
 #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
+    std::lock_guard<std::recursive_mutex> lock(mMutex);
     if (!mHwCtxImpl || !DeviceDataEntry.valid) {
       return;
     }
@@ -181,7 +186,7 @@ namespace xdp {
   void AIEHaltPlugin::writeAll(bool /*openNewFiles*/)
   {
 #if defined(XDP_CLIENT_BUILD) || defined(XDP_VE2_BUILD)
-
+    std::lock_guard<std::recursive_mutex> lock(mMutex);
     if (!mHwCtxImpl || !DeviceDataEntry.valid) {
       return;
     }
